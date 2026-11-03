@@ -18,6 +18,7 @@
       <button id="processButton" disabled>Process</button>
       <button id="openImagePickerButton" type="button">Open image</button>
       <button id="saveButton">Save</button>
+      <button id="saveMeshButton" type="button" disabled>Save STL</button>
       <button id="aboutButton">About</button>
       <button id="helpButton">Help</button>
       <!-- <button id="moreButton">More commands</button> -->
@@ -27,6 +28,8 @@
       <div id="loadingCircle" class="loading-circle hidden"></div>
       <label for="overlayCheck" style="color:white">Overlay</label>
       <input type="checkbox" id="overlayCheck" checked />
+      <label for="inputOpacity" style="color:white">Input opacity</label>
+      <input type="range" id="inputOpacity" min="0" max="1" step="0.01" value="1" />
       <!-- overlay opacity slider -->
       <label id="overlayOpacityLabel" for="overlayOpacity" style="color:white">Opacity</label>
       <input type="range" id="overlayOpacity" min="0" max="1" step="0.01" value="1" />

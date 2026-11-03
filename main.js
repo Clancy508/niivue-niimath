@@ -1,5 +1,5 @@
 import './style.css'
-import { Niivue, SLICE_TYPE, SHOW_RENDER, MULTIPLANAR_TYPE } from '@niivue/niivue'
+import { Niivue, NVMeshUtilities, SLICE_TYPE, SHOW_RENDER, MULTIPLANAR_TYPE } from '@niivue/niivue'
 import { Niimath } from "@niivue/niimath"
 
 // create niivue instance but don't setup the scene just yet
@@ -53,6 +53,7 @@ async function processImage(isOverlay) {
       console.log('arrayBuffer', arrayBuffer);
       await nv.loadFromArrayBuffer(arrayBuffer, outName)
     }
+    updateMeshDownloadButton();
     
     // set the colormap to the value of the color dropdown
     if (isOverlay) {
@@ -77,6 +78,13 @@ function setOverlayOpacity() {
   const opacity = parseFloat(opacityString);
   if (nv.volumes.length > 1) {
     nv.setOpacity(1, opacity);
+  }
+}
+
+function setInputOpacity() {
+  const opacity = parseFloat(inputOpacity.value);
+  if (nv.volumes.length > 0) {
+    nv.setOpacity(0, opacity);
   }
 }
 
@@ -200,6 +208,7 @@ async function loadImage(url, name) {
   for (let i = 0; i < nv.volumes.length; i++) {
     nv.removeVolume(nv.volumes[i]);
   }
+  updateMeshDownloadButton();
   let volumeList = [{ url: url, name },];
   await nv.loadVolumes(volumeList);
   if (activeUploadedUrl && activeUploadedUrl !== url) {
@@ -209,6 +218,11 @@ async function loadImage(url, name) {
   // set the unedited image to the loaded image
   uneditedImage = nv.volumes[0];
   nv.updateGLVolume();
+}
+
+function updateMeshDownloadButton() {
+  const saveMeshButton = document.getElementById('saveMeshButton');
+  if (saveMeshButton) saveMeshButton.disabled = nv.meshes.length === 0;
 }
 
 
@@ -222,6 +236,9 @@ async function main() {
 
   // set overlay opacity
   overlayOpacity.oninput = setOverlayOpacity;
+
+  // set input opacity
+  inputOpacity.oninput = setInputOpacity;
 
   // set overlay color
   overlayColor.onchange = setOverlayColor;
@@ -365,6 +382,17 @@ async function main() {
     else
       nv.saveImage({ filename: "niimath.nii.gz", isSaveDrawing: false, volumeByIndex: 1 });
   }
+  const saveMeshButton = document.getElementById('saveMeshButton');
+  saveMeshButton.onclick = async function () {
+    const mesh = nv.meshes[nv.meshes.length - 1];
+    if (!mesh?.tris?.length) return;
+    try {
+      await NVMeshUtilities.saveMesh(mesh.pts, mesh.tris, 'niimath.stl');
+    } catch (error) {
+      console.error('Unable to save mesh', error);
+    }
+  }
+  updateMeshDownloadButton();
   aboutButton.onclick = function () {
     const link = "https://github.com/rordenlab/niimath?tab=readme-ov-file#about"
     window.open(link, '_blank');
