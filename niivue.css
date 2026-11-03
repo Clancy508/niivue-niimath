@@ -23,9 +23,6 @@ main {
   background: #000000;
   position: relative;
 }
-footer {
-  margin: 10px;
-}
 canvas {
   position: absolute;
   cursor: crosshair;
@@ -124,4 +121,62 @@ div {
 
 .hidden {
   display: none;
+}
+
+#imagePicker {
+  width: min(520px, calc(100vw - 48px));
+  max-height: min(70vh, 640px);
+  padding: 18px;
+  color: white;
+  background: #202020;
+  border: 1px solid #666;
+}
+
+#imagePicker::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.image-picker-header,
+#imageBreadcrumbs,
+.image-picker-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-picker-header {
+  justify-content: space-between;
+}
+
+.image-picker-header h2 {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+}
+
+#imageBreadcrumbs {
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.image-file-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.image-file-list button {
+  text-align: left;
+}
+
+.image-picker-upload {
+  flex-wrap: wrap;
+  border-top: 1px solid #666;
+  padding-top: 12px;
+}
+
+#imagePickerStatus {
+  min-height: 1.2em;
 }

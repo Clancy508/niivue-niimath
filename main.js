@@ -15,6 +15,7 @@ console.log(niimath);
 // store a reference to an unedited image for 
 // use when the user wants to change the command from the dropdown
 let uneditedImage;
+let activeUploadedUrl;
 
 async function processImage(isOverlay) {
   loadingCircle.classList.remove('hidden')
@@ -191,7 +192,7 @@ function moreCommandsSelected() {
   buttonProcessImage();
 }
 
-async function loadImage(url) {
+async function loadImage(url, name) {
   // remove all meshes and volumes
   for (let i = 0; i < nv.meshes.length; i++) {
     nv.removeMesh(nv.meshes[i]);
@@ -199,8 +200,12 @@ async function loadImage(url) {
   for (let i = 0; i < nv.volumes.length; i++) {
     nv.removeVolume(nv.volumes[i]);
   }
-  let volumeList = [{ url: url },];
+  let volumeList = [{ url: url, name },];
   await nv.loadVolumes(volumeList);
+  if (activeUploadedUrl && activeUploadedUrl !== url) {
+    URL.revokeObjectURL(activeUploadedUrl);
+  }
+  activeUploadedUrl = url.startsWith('blob:') ? url : undefined;
   // set the unedited image to the loaded image
   uneditedImage = nv.volumes[0];
   nv.updateGLVolume();
@@ -230,46 +235,129 @@ async function main() {
   // when the user selects a command from the moreCommands dropdown
   moreCommands.onchange = moreCommandsSelected;
 
+  const imagePicker = document.getElementById('imagePicker');
+  const imagePickerButton = document.getElementById('openImagePickerButton');
+  const imageBreadcrumbs = document.getElementById('imageBreadcrumbs');
+  const imageFileList = document.getElementById('imageFileList');
+  const imagePickerStatus = document.getElementById('imagePickerStatus');
+  const imageUpload = document.getElementById('imageUpload');
+  let currentImageDirectory = '';
+
+  function renderImageBrowser() {
+    imageBreadcrumbs.replaceChildren();
+    imageFileList.replaceChildren();
+    imagePickerStatus.textContent = '';
+
+    const rootButton = document.createElement('button');
+    rootButton.type = 'button';
+    rootButton.textContent = 'public';
+    rootButton.onclick = () => {
+      currentImageDirectory = '';
+      renderImageBrowser();
+    };
+    imageBreadcrumbs.append(rootButton);
+
+    let pathSoFar = '';
+    for (const segment of currentImageDirectory.split('/').filter(Boolean)) {
+      pathSoFar = pathSoFar ? `${pathSoFar}/${segment}` : segment;
+      const crumbPath = pathSoFar;
+      const crumb = document.createElement('button');
+      crumb.type = 'button';
+      crumb.textContent = segment;
+      crumb.onclick = () => {
+        currentImageDirectory = crumbPath;
+        renderImageBrowser();
+      };
+      imageBreadcrumbs.append(crumb);
+    }
+
+    const prefix = currentImageDirectory ? `${currentImageDirectory}/` : '';
+    const folders = new Set();
+    const files = [];
+    for (const filePath of window.__PUBLIC_IMAGE_FILES__ || []) {
+      if (!filePath.startsWith(prefix)) continue;
+      const remainder = filePath.slice(prefix.length);
+      const separator = remainder.indexOf('/');
+      if (separator >= 0) folders.add(remainder.slice(0, separator));
+      else files.push({ path: filePath, name: remainder });
+    }
+
+    if (currentImageDirectory) {
+      const parentButton = document.createElement('button');
+      parentButton.type = 'button';
+      parentButton.textContent = '..';
+      parentButton.onclick = () => {
+        currentImageDirectory = currentImageDirectory.split('/').slice(0, -1).join('/');
+        renderImageBrowser();
+      };
+      imageFileList.append(parentButton);
+    }
+
+    for (const folder of [...folders].sort()) {
+      const folderButton = document.createElement('button');
+      folderButton.type = 'button';
+      folderButton.textContent = `${folder}/`;
+      folderButton.onclick = () => {
+        currentImageDirectory = prefix ? `${prefix}${folder}` : folder;
+        renderImageBrowser();
+      };
+      imageFileList.append(folderButton);
+    }
+
+    for (const file of files.sort((a, b) => a.name.localeCompare(b.name))) {
+      const fileButton = document.createElement('button');
+      fileButton.type = 'button';
+      fileButton.textContent = file.name;
+      fileButton.onclick = async () => {
+        imagePickerStatus.textContent = `Loading ${file.name}...`;
+        try {
+          const assetPath = file.path.split('/').map(encodeURIComponent).join('/');
+          await loadImage(new URL(assetPath, document.baseURI).href);
+          imagePicker.close();
+        } catch (error) {
+          imagePickerStatus.textContent = `Unable to load ${file.name}.`;
+          console.error(error);
+        }
+      };
+      imageFileList.append(fileButton);
+    }
+
+    if (!folders.size && !files.length) {
+      const emptyMessage = document.createElement('p');
+      emptyMessage.textContent = 'No supported images in this folder.';
+      imageFileList.append(emptyMessage);
+    }
+  }
+
+  imagePickerButton.onclick = () => {
+    currentImageDirectory = '';
+    renderImageBrowser();
+    imagePicker.showModal();
+  };
+
+  imageUpload.onchange = async () => {
+    const file = imageUpload.files[0];
+    if (!file) return;
+    const uploadUrl = URL.createObjectURL(file);
+    imagePickerStatus.textContent = `Loading ${file.name}...`;
+    try {
+      await loadImage(uploadUrl, file.name);
+      imagePicker.close();
+    } catch (error) {
+      URL.revokeObjectURL(uploadUrl);
+      imagePickerStatus.textContent = `Unable to load ${file.name}.`;
+      console.error(error);
+    } finally {
+      imageUpload.value = '';
+    }
+  };
+
   // enable our button after our WASM has been initialize
   function initializeImageProcessing() {
     // await initWasm();
     let button = document.getElementById('processButton');
     button.disabled = false;
     button.onclick = buttonProcessImage;
-  }
-  const imgs = [
-    "fa8",
-    "dwi16",
-    "fmri32",
-    "T1w7T",
-    "T2w7T",
-    "bold7T",
-    "chris_PD",
-    "chris_t1",
-    "chris_t2",
-    "CT_Abdo",
-    "CT_Electrodes",
-    "CT_Philips",
-    "CT_pitch",
-    "fmri_pitch",
-    "Iguana",
-    "mni152",
-    "MR_Gd",
-    "spm152",
-    "spmMotor",
-  ];
-  const imgEl = document.getElementById("images");
-  for (let i = 0; i < imgs.length; i++) {
-    let btn = document.createElement("button");
-    btn.innerHTML = imgs[i];
-    btn.onclick = async function () {
-      let root = "https://niivue.github.io/niivue-demo-images/";
-      if (i < 6)
-        root = "./";
-      let img = root + imgs[i] + ".nii.gz";
-      await loadImage(img);
-    };
-    imgEl.appendChild(btn);
   }
   saveButton.onclick = function () {
     if (nv.volumes.length < 2)

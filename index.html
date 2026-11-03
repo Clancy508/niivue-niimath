@@ -16,6 +16,7 @@
       <label for="command">Command</label>
       <input id="command" value="-dehaze 5 -dog 2 3.2"/>
       <button id="processButton" disabled>Process</button>
+      <button id="openImagePickerButton" type="button">Open image</button>
       <button id="saveButton">Save</button>
       <button id="aboutButton">About</button>
       <button id="helpButton">Help</button>
@@ -36,9 +37,19 @@
     <main>
       <canvas id="gl"></canvas>
     </main>
-    <footer>
-        <label id="images"></label>
-</footer>
+    <dialog id="imagePicker" aria-labelledby="imagePickerTitle">
+      <form method="dialog" class="image-picker-header">
+        <h2 id="imagePickerTitle">Open image</h2>
+        <button type="submit" aria-label="Close image picker">Close</button>
+      </form>
+      <nav id="imageBreadcrumbs" aria-label="Image folders"></nav>
+      <div id="imageFileList" class="image-file-list"></div>
+      <p id="imagePickerStatus" role="status" aria-live="polite"></p>
+      <div class="image-picker-upload">
+        <label for="imageUpload">Upload an image</label>
+        <input id="imageUpload" type="file" accept=".nii,.gz,.mgh,.mgz,.mnc,.hdr,.img" />
+      </div>
+    </dialog>
     <script type="module" src="./main.js"></script>
   </body>
 </html>
